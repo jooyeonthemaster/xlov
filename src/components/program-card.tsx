@@ -1,9 +1,9 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import gsap from 'gsap'
+import { useMobile } from '@/hooks/use-mobile'
 import type { ProgramInfo } from '@/types/api'
 
 interface ProgramCardProps {
@@ -11,46 +11,56 @@ interface ProgramCardProps {
   index: number
 }
 
+// Throttle 함수 - 성능 최적화
+function throttle<T extends (...args: Parameters<T>) => void>(
+  func: T,
+  limit: number
+): T {
+  let inThrottle = false
+  return ((...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args)
+      inThrottle = true
+      setTimeout(() => (inThrottle = false), limit)
+    }
+  }) as T
+}
+
 export function ProgramCard({ program, index }: ProgramCardProps) {
   const router = useRouter()
   const cardRef = useRef<HTMLDivElement>(null)
   const glowRef = useRef<HTMLDivElement>(null)
+  const { isMobile, isTouchDevice } = useMobile()
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current || !glowRef.current) return
+  // 모바일/터치 기기에서는 hover 효과 비활성화
+  const enableHoverEffects = !isMobile && !isTouchDevice
 
-    const rect = cardRef.current.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const y = e.clientY - rect.top
+  // Throttled mouse move handler (16ms = ~60fps)
+  const handleMouseMove = useCallback(
+    throttle((e: React.MouseEvent<HTMLDivElement>) => {
+      if (!enableHoverEffects || !cardRef.current || !glowRef.current) return
 
-    // Move glow effect to cursor position
-    gsap.to(glowRef.current, {
-      x: x - 150,
-      y: y - 150,
-      duration: 0.3,
-      ease: 'power2.out',
-    })
-  }
+      const rect = cardRef.current.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
 
-  const handleMouseEnter = () => {
-    if (!glowRef.current) return
-    gsap.to(glowRef.current, {
-      opacity: 0.4,
-      scale: 1.2,
-      duration: 0.4,
-      ease: 'power2.out',
-    })
-  }
+      // CSS transform 직접 사용 (GSAP 대신)
+      glowRef.current.style.transform = `translate(${x - 150}px, ${y - 150}px)`
+    }, 16),
+    [enableHoverEffects]
+  )
 
-  const handleMouseLeave = () => {
-    if (!glowRef.current) return
-    gsap.to(glowRef.current, {
-      opacity: 0,
-      scale: 1,
-      duration: 0.4,
-      ease: 'power2.out',
-    })
-  }
+  const handleMouseEnter = useCallback(() => {
+    if (!enableHoverEffects || !glowRef.current) return
+    glowRef.current.style.opacity = '0.4'
+    glowRef.current.style.scale = '1.2'
+  }, [enableHoverEffects])
+
+  const handleMouseLeave = useCallback(() => {
+    if (!enableHoverEffects || !glowRef.current) return
+    glowRef.current.style.opacity = '0'
+    glowRef.current.style.scale = '1'
+  }, [enableHoverEffects])
 
   const handleClick = () => {
     router.push(program.route)
@@ -66,9 +76,9 @@ export function ProgramCard({ program, index }: ProgramCardProps) {
         duration: 0.8,
         ease: [0.16, 1, 0.3, 1],
       }}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseMove={enableHoverEffects ? handleMouseMove : undefined}
+      onMouseEnter={enableHoverEffects ? handleMouseEnter : undefined}
+      onMouseLeave={enableHoverEffects ? handleMouseLeave : undefined}
       onClick={handleClick}
       className="group relative cursor-pointer perspective-1000"
     >
@@ -79,15 +89,18 @@ export function ProgramCard({ program, index }: ProgramCardProps) {
           boxShadow: `0 0 60px -15px ${program.accentColor}20`,
         }}
       >
-        {/* Animated glow effect following cursor */}
-        <div
-          ref={glowRef}
-          className="pointer-events-none absolute h-[300px] w-[300px] rounded-full opacity-0"
-          style={{
-            background: `radial-gradient(circle, ${program.accentColor}40 0%, transparent 70%)`,
-            filter: 'blur(40px)',
-          }}
-        />
+        {/* Animated glow effect following cursor - 데스크톱에서만 */}
+        {enableHoverEffects && (
+          <div
+            ref={glowRef}
+            className="pointer-events-none absolute h-[300px] w-[300px] rounded-full opacity-0 transition-[opacity,transform,scale] duration-300"
+            style={{
+              background: `radial-gradient(circle, ${program.accentColor}40 0%, transparent 70%)`,
+              filter: 'blur(40px)',
+              willChange: 'transform, opacity',
+            }}
+          />
+        )}
 
         {/* Top accent line */}
         <div
@@ -99,23 +112,25 @@ export function ProgramCard({ program, index }: ProgramCardProps) {
 
         {/* Content */}
         <div className="relative z-10 p-8 md:p-10">
-          {/* Icon with animated ring */}
+          {/* Icon with animated ring - 모바일에서는 애니메이션 단순화 */}
           <div className="relative mb-6 inline-block">
-            <motion.div
-              className="absolute inset-0 rounded-full"
-              style={{
-                background: `linear-gradient(135deg, ${program.accentColor}30, transparent)`,
-              }}
-              animate={{
-                scale: [1, 1.2, 1],
-                opacity: [0.5, 0.2, 0.5],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: 'easeInOut',
-              }}
-            />
+            {!isMobile && (
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: `linear-gradient(135deg, ${program.accentColor}30, transparent)`,
+                }}
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 0.2, 0.5],
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              />
+            )}
             <div
               className="relative flex h-16 w-16 items-center justify-center rounded-full text-3xl"
               style={{
@@ -145,19 +160,25 @@ export function ProgramCard({ program, index }: ProgramCardProps) {
             {program.description}
           </p>
 
-          {/* CTA Arrow */}
+          {/* CTA Arrow - 모바일에서는 애니메이션 제거 */}
           <div className="mt-6 flex items-center gap-2">
             <span className="text-sm text-white/40 transition-colors duration-300 group-hover:text-white/60">
               체험하기
             </span>
-            <motion.span
-              className="text-lg"
-              style={{ color: program.accentColor }}
-              animate={{ x: [0, 5, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              →
-            </motion.span>
+            {isMobile ? (
+              <span className="text-lg" style={{ color: program.accentColor }}>
+                →
+              </span>
+            ) : (
+              <motion.span
+                className="text-lg"
+                style={{ color: program.accentColor }}
+                animate={{ x: [0, 5, 0] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >
+                →
+              </motion.span>
+            )}
           </div>
         </div>
 

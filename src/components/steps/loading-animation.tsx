@@ -1,6 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
+import { useMobile } from '@/hooks/use-mobile'
 
 interface LoadingAnimationProps {
   status: 'analyzing' | 'generating' | 'saving' | 'complete' | 'error'
@@ -8,6 +9,12 @@ interface LoadingAnimationProps {
 }
 
 export function LoadingAnimation({ status, memberColor }: LoadingAnimationProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일에서는 파티클 3개, 데스크톱에서는 6개
+  const particleCount = isMobile ? 3 : 6
+  const particleAngleStep = 360 / particleCount
+
   return (
     <div className="relative w-40 h-40 mx-auto">
       {/* Outer rotating ring */}
@@ -16,46 +23,47 @@ export function LoadingAnimation({ status, memberColor }: LoadingAnimationProps)
         style={{
           borderTopColor: memberColor,
           borderRightColor: `${memberColor}50`,
+          willChange: 'transform',
         }}
         animate={{
           rotate: status === 'complete' ? 0 : 360,
         }}
         transition={{
-          duration: 1.5,
+          duration: isMobile ? 2 : 1.5, // 모바일에서 느리게
           repeat: status === 'complete' ? 0 : Infinity,
           ease: 'linear',
         }}
       />
 
-      {/* Middle pulsing ring */}
+      {/* Middle pulsing ring - 모바일에서는 단순화 */}
       <motion.div
         className="absolute inset-4 rounded-full"
         style={{
           border: `2px solid ${memberColor}30`,
         }}
         animate={{
-          scale: status === 'complete' ? 1 : [1, 1.1, 1],
-          opacity: status === 'complete' ? 1 : [0.5, 1, 0.5],
+          scale: status === 'complete' ? 1 : isMobile ? 1.05 : [1, 1.1, 1],
+          opacity: status === 'complete' ? 1 : isMobile ? 0.7 : [0.5, 1, 0.5],
         }}
         transition={{
-          duration: 2,
+          duration: isMobile ? 2.5 : 2,
           repeat: status === 'complete' ? 0 : Infinity,
           ease: 'easeInOut',
         }}
       />
 
-      {/* Inner glow */}
+      {/* Inner glow - 모바일에서 단순화 */}
       <motion.div
         className="absolute inset-8 rounded-full"
         style={{
           background: `radial-gradient(circle, ${memberColor}40 0%, transparent 70%)`,
         }}
         animate={{
-          scale: status === 'complete' ? 1.2 : [0.8, 1.2, 0.8],
-          opacity: status === 'complete' ? 0.8 : [0.3, 0.6, 0.3],
+          scale: status === 'complete' ? 1.2 : isMobile ? 1 : [0.8, 1.2, 0.8],
+          opacity: status === 'complete' ? 0.8 : isMobile ? 0.5 : [0.3, 0.6, 0.3],
         }}
         transition={{
-          duration: 2.5,
+          duration: isMobile ? 3 : 2.5,
           repeat: status === 'complete' ? 0 : Infinity,
           ease: 'easeInOut',
         }}
@@ -107,10 +115,10 @@ export function LoadingAnimation({ status, memberColor }: LoadingAnimationProps)
             className="w-8 h-8 rounded-full"
             style={{ backgroundColor: memberColor }}
             animate={{
-              scale: [1, 1.2, 1],
+              scale: isMobile ? 1.1 : [1, 1.2, 1],
             }}
             transition={{
-              duration: 1,
+              duration: isMobile ? 1.5 : 1,
               repeat: Infinity,
               ease: 'easeInOut',
             }}
@@ -118,10 +126,10 @@ export function LoadingAnimation({ status, memberColor }: LoadingAnimationProps)
         )}
       </div>
 
-      {/* Floating particles */}
+      {/* Floating particles - 모바일에서 개수 줄임 */}
       {status !== 'complete' && status !== 'error' && (
         <>
-          {[...Array(6)].map((_, i) => (
+          {[...Array(particleCount)].map((_, i) => (
             <motion.div
               key={i}
               className="absolute w-2 h-2 rounded-full"
@@ -129,17 +137,18 @@ export function LoadingAnimation({ status, memberColor }: LoadingAnimationProps)
                 backgroundColor: memberColor,
                 left: '50%',
                 top: '50%',
+                willChange: 'transform, opacity',
               }}
               animate={{
-                x: [0, Math.cos((i * 60 * Math.PI) / 180) * 60],
-                y: [0, Math.sin((i * 60 * Math.PI) / 180) * 60],
+                x: [0, Math.cos((i * particleAngleStep * Math.PI) / 180) * (isMobile ? 45 : 60)],
+                y: [0, Math.sin((i * particleAngleStep * Math.PI) / 180) * (isMobile ? 45 : 60)],
                 opacity: [0, 1, 0],
                 scale: [0, 1, 0],
               }}
               transition={{
-                duration: 2,
+                duration: isMobile ? 2.5 : 2,
                 repeat: Infinity,
-                delay: i * 0.3,
+                delay: i * (isMobile ? 0.5 : 0.3),
                 ease: 'easeOut',
               }}
             />

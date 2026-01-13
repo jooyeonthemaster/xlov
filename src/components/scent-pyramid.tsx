@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import gsap from 'gsap'
+import { useMobile } from '@/hooks/use-mobile'
 import type { ScentNote, ScentRecipe } from '@/types/scent'
 
 interface ScentPyramidProps {
@@ -16,6 +15,7 @@ interface NoteRowProps {
   layer: 'top' | 'middle' | 'base'
   index: number
   showDetails: boolean
+  isMobile: boolean
 }
 
 const LAYER_CONFIG = {
@@ -48,34 +48,32 @@ const LAYER_CONFIG = {
   },
 }
 
-function NoteRow({ notes, layer, index, showDetails }: NoteRowProps) {
+function NoteRow({ notes, layer, showDetails, isMobile }: NoteRowProps) {
   const config = LAYER_CONFIG[layer]
-  const rowRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!rowRef.current) return
-
-    const ctx = gsap.context(() => {
-      // Animate note circles on hover
-      const noteCircles = rowRef.current?.querySelectorAll('.note-circle')
-      noteCircles?.forEach((circle) => {
-        gsap.set(circle, { scale: 1 })
-      })
-    }, rowRef)
-
-    return () => ctx.revert()
-  }, [])
+  // 모바일에서는 애니메이션 단순화
+  const rowAnimation = isMobile
+    ? { opacity: 1, y: 0, scale: 1 }
+    : {
+        initial: { opacity: 0, y: 30, scale: 0.95 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        transition: {
+          delay: config.delay,
+          duration: 0.6,
+          ease: [0.16, 1, 0.3, 1],
+        },
+      }
 
   return (
     <motion.div
-      ref={rowRef}
-      initial={{ opacity: 0, y: 30, scale: 0.95 }}
+      {...(isMobile ? {} : rowAnimation)}
+      initial={isMobile ? undefined : { opacity: 0, y: 30, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{
-        delay: config.delay,
-        duration: 0.6,
-        ease: [0.16, 1, 0.3, 1],
-      }}
+      transition={
+        isMobile
+          ? { duration: 0.3 }
+          : { delay: config.delay, duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+      }
       className={`${config.width} mx-auto`}
     >
       {/* Layer container */}
@@ -102,88 +100,22 @@ function NoteRow({ notes, layer, index, showDetails }: NoteRowProps) {
         {/* Notes */}
         <div className="flex flex-wrap justify-center gap-3">
           {notes.map((note, noteIndex) => (
-            <motion.div
+            <NoteCircle
               key={note.nameEn}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{
-                delay: config.delay + noteIndex * 0.1,
-                duration: 0.4,
-                ease: 'backOut',
-              }}
-              className="note-circle group relative"
-            >
-              {/* Note circle with color and intensity */}
-              <div
-                className="relative flex h-16 w-16 cursor-pointer items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 md:h-20 md:w-20"
-                style={{
-                  background: `radial-gradient(circle at 30% 30%, ${note.color}80, ${note.color}40)`,
-                  boxShadow: `0 0 20px ${note.color}30, inset 0 0 20px ${note.color}20`,
-                }}
-              >
-                {/* Intensity ring */}
-                <svg
-                  className="absolute inset-0 h-full w-full -rotate-90"
-                  viewBox="0 0 100 100"
-                >
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="46"
-                    fill="none"
-                    stroke="rgba(255,255,255,0.1)"
-                    strokeWidth="3"
-                  />
-                  <motion.circle
-                    cx="50"
-                    cy="50"
-                    r="46"
-                    fill="none"
-                    stroke={note.color}
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: note.intensity / 100 }}
-                    transition={{
-                      delay: config.delay + noteIndex * 0.1 + 0.3,
-                      duration: 0.8,
-                      ease: 'easeOut',
-                    }}
-                    style={{
-                      strokeDasharray: '289',
-                      strokeDashoffset: '289',
-                    }}
-                  />
-                </svg>
-
-                {/* Intensity percentage */}
-                <span className="text-xs font-medium text-white/80">
-                  {note.intensity}%
-                </span>
-              </div>
-
-              {/* Note name tooltip */}
-              <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <div className="rounded-lg bg-black/80 px-3 py-1.5 text-xs backdrop-blur-sm">
-                  <span className="text-white">{note.name}</span>
-                  <span className="ml-1 text-white/50">{note.nameEn}</span>
-                </div>
-              </div>
-
-              {/* Note name below (always visible) */}
-              <div className="mt-2 text-center">
-                <span className="text-xs text-white/60">{note.name}</span>
-              </div>
-            </motion.div>
+              note={note}
+              noteIndex={noteIndex}
+              layerDelay={config.delay}
+              isMobile={isMobile}
+            />
           ))}
         </div>
 
         {/* Layer description */}
         {showDetails && (
           <motion.p
-            initial={{ opacity: 0 }}
+            initial={isMobile ? undefined : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: config.delay + 0.5 }}
+            transition={{ delay: isMobile ? 0 : config.delay + 0.5 }}
             className="mt-4 text-center text-xs text-white/40"
           >
             {config.description}
@@ -194,20 +126,138 @@ function NoteRow({ notes, layer, index, showDetails }: NoteRowProps) {
   )
 }
 
+// 노트 원형 컴포넌트 분리 - 메모이제이션 가능
+function NoteCircle({
+  note,
+  noteIndex,
+  layerDelay,
+  isMobile,
+}: {
+  note: ScentNote
+  noteIndex: number
+  layerDelay: number
+  isMobile: boolean
+}) {
+  // 모바일에서는 intensity ring 애니메이션 생략
+  const intensityStyle = isMobile
+    ? {
+        strokeDasharray: `${(note.intensity / 100) * 289} 289`,
+        strokeDashoffset: 0,
+      }
+    : undefined
+
+  return (
+    <motion.div
+      initial={isMobile ? undefined : { opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={
+        isMobile
+          ? { duration: 0.2 }
+          : { delay: layerDelay + noteIndex * 0.1, duration: 0.4, ease: 'backOut' }
+      }
+      className="note-circle group relative"
+    >
+      {/* Note circle with color and intensity */}
+      <div
+        className="relative flex h-16 w-16 cursor-pointer items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 md:h-20 md:w-20"
+        style={{
+          background: `radial-gradient(circle at 30% 30%, ${note.color}80, ${note.color}40)`,
+          boxShadow: isMobile
+            ? `0 0 10px ${note.color}20`
+            : `0 0 20px ${note.color}30, inset 0 0 20px ${note.color}20`,
+        }}
+      >
+        {/* Intensity ring */}
+        <svg
+          className="absolute inset-0 h-full w-full -rotate-90"
+          viewBox="0 0 100 100"
+        >
+          <circle
+            cx="50"
+            cy="50"
+            r="46"
+            fill="none"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="3"
+          />
+          {isMobile ? (
+            // 모바일: 정적 렌더링
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke={note.color}
+              strokeWidth="3"
+              strokeLinecap="round"
+              style={intensityStyle}
+            />
+          ) : (
+            // 데스크톱: 애니메이션 적용
+            <motion.circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke={note.color}
+              strokeWidth="3"
+              strokeLinecap="round"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: note.intensity / 100 }}
+              transition={{
+                delay: layerDelay + noteIndex * 0.1 + 0.3,
+                duration: 0.8,
+                ease: 'easeOut',
+              }}
+              style={{
+                strokeDasharray: '289',
+                strokeDashoffset: '289',
+              }}
+            />
+          )}
+        </svg>
+
+        {/* Intensity percentage */}
+        <span className="text-xs font-medium text-white/80">
+          {note.intensity}%
+        </span>
+      </div>
+
+      {/* Note name tooltip - 모바일에서는 hover가 없으므로 항상 숨김 */}
+      {!isMobile && (
+        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+          <div className="rounded-lg bg-black/80 px-3 py-1.5 text-xs backdrop-blur-sm">
+            <span className="text-white">{note.name}</span>
+            <span className="ml-1 text-white/50">{note.nameEn}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Note name below (always visible) */}
+      <div className="mt-2 text-center">
+        <span className="text-xs text-white/60">{note.name}</span>
+      </div>
+    </motion.div>
+  )
+}
+
 export function ScentPyramid({
   recipe,
   showDetails = true,
   animated = true,
 }: ScentPyramidProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const { isMobile } = useMobile()
+
+  // 모바일에서는 애니메이션 비활성화
+  const shouldAnimate = animated && !isMobile
 
   return (
-    <div ref={containerRef} className="w-full space-y-4">
+    <div className="w-full space-y-4">
       {/* Header */}
       <motion.div
-        initial={animated ? { opacity: 0, y: -20 } : false}
+        initial={shouldAnimate ? { opacity: 0, y: -20 } : undefined}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        transition={{ duration: isMobile ? 0.3 : 0.6 }}
         className="text-center"
       >
         <h3 className="mb-1 text-xl font-bold text-white md:text-2xl">
@@ -227,6 +277,7 @@ export function ScentPyramid({
           layer="top"
           index={0}
           showDetails={showDetails}
+          isMobile={isMobile}
         />
 
         {/* MIDDLE notes */}
@@ -235,6 +286,7 @@ export function ScentPyramid({
           layer="middle"
           index={1}
           showDetails={showDetails}
+          isMobile={isMobile}
         />
 
         {/* BASE notes */}
@@ -243,18 +295,19 @@ export function ScentPyramid({
           layer="base"
           index={2}
           showDetails={showDetails}
+          isMobile={isMobile}
         />
       </div>
 
       {/* Mood tags */}
       {recipe.mood && recipe.mood.length > 0 && (
         <motion.div
-          initial={animated ? { opacity: 0 } : false}
+          initial={shouldAnimate ? { opacity: 0 } : undefined}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
+          transition={{ delay: isMobile ? 0 : 1.2 }}
           className="flex flex-wrap justify-center gap-2"
         >
-          {recipe.mood.map((tag, index) => (
+          {recipe.mood.map((tag) => (
             <span
               key={tag}
               className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60"
@@ -268,9 +321,9 @@ export function ScentPyramid({
       {/* Season & Time */}
       {(recipe.season || recipe.timeOfDay) && (
         <motion.div
-          initial={animated ? { opacity: 0 } : false}
+          initial={shouldAnimate ? { opacity: 0 } : undefined}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.4 }}
+          transition={{ delay: isMobile ? 0 : 1.4 }}
           className="flex justify-center gap-4 text-xs text-white/40"
         >
           {recipe.season && <span>🍂 {recipe.season}</span>}
