@@ -13,6 +13,21 @@ export function BackgroundEffects({
 }: BackgroundEffectsProps) {
   const { isMobile } = useMobile()
 
+  // 모바일에서는 배경 효과 완전히 비활성화
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        {/* 모바일: 단순 그라디언트 배경만 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at 50% 0%, ${memberColor || 'var(--member-umuti)'}15 0%, transparent 50%)`,
+          }}
+        />
+      </div>
+    )
+  }
+
   const opacityMap = {
     default: 0.15,
     subtle: 0.08,
@@ -21,89 +36,66 @@ export function BackgroundEffects({
 
   const opacity = opacityMap[variant]
 
-  // 모바일에서는 blur와 크기를 대폭 줄임
-  const mobileConfig = {
-    sizes: ['200px', '150px', '120px'],
-    blurs: ['40px', '30px', '25px'],
-    duration: '30s', // CSS animation duration
-  }
-
-  const desktopConfig = {
-    sizes: ['600px', '500px', '400px'],
-    blurs: ['128px', '100px', '80px'],
-    duration: '20s',
-  }
-
-  const config = isMobile ? mobileConfig : desktopConfig
-
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
       {/* Main gradient mesh */}
       <div className="gradient-mesh absolute inset-0" />
 
-      {/* Animated orbs - CSS animation으로 변경 (더 성능 좋음) */}
+      {/* Animated orbs - CSS animation (데스크톱만) */}
       <div
         className="absolute rounded-full animate-float-1"
         style={{
-          width: config.sizes[0],
-          height: config.sizes[0],
-          filter: `blur(${config.blurs[0]})`,
+          width: '600px',
+          height: '600px',
+          filter: 'blur(128px)',
           background: memberColor || 'var(--member-umuti)',
           opacity,
           top: '10%',
           left: '10%',
           willChange: 'transform',
-          animationDuration: config.duration,
         }}
       />
 
       <div
         className="absolute rounded-full animate-float-2"
         style={{
-          width: config.sizes[1],
-          height: config.sizes[1],
-          filter: `blur(${config.blurs[1]})`,
+          width: '500px',
+          height: '500px',
+          filter: 'blur(100px)',
           background: 'var(--member-rui)',
           opacity: opacity * 0.8,
           bottom: '10%',
           right: '10%',
           willChange: 'transform',
-          animationDuration: `calc(${config.duration} * 1.25)`,
         }}
       />
 
-      {/* 모바일에서는 세 번째 orb 제거 */}
-      {!isMobile && (
-        <div
-          className="absolute rounded-full animate-float-3"
-          style={{
-            width: config.sizes[2],
-            height: config.sizes[2],
-            filter: `blur(${config.blurs[2]})`,
-            background: 'var(--member-hyun)',
-            opacity: opacity * 0.6,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            willChange: 'transform',
-            animationDuration: `calc(${config.duration} * 1.5)`,
-          }}
-        />
-      )}
+      <div
+        className="absolute rounded-full animate-float-3"
+        style={{
+          width: '400px',
+          height: '400px',
+          filter: 'blur(80px)',
+          background: 'var(--member-hyun)',
+          opacity: opacity * 0.6,
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          willChange: 'transform',
+        }}
+      />
 
-      {/* Subtle grid pattern - 모바일에서 제거 */}
-      {!isMobile && (
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{
-            backgroundImage: `
-              linear-gradient(var(--text-muted) 1px, transparent 1px),
-              linear-gradient(90deg, var(--text-muted) 1px, transparent 1px)
-            `,
-            backgroundSize: '100px 100px',
-          }}
-        />
-      )}
+      {/* Subtle grid pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.02]"
+        style={{
+          backgroundImage: `
+            linear-gradient(var(--text-muted) 1px, transparent 1px),
+            linear-gradient(90deg, var(--text-muted) 1px, transparent 1px)
+          `,
+          backgroundSize: '100px 100px',
+        }}
+      />
     </div>
   )
 }
