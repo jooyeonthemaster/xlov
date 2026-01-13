@@ -14,6 +14,7 @@ import { MEMBERS } from '@/lib/constants'
 import { MIRROR_COLOR, STYLE_INTENSITIES } from '@/lib/constants/mirror-styles'
 import { Button } from '@/components/ui/button'
 import { RefreshCw, Sparkles } from 'lucide-react'
+import { useMobile } from '@/hooks/use-mobile'
 
 type LoadingPhase = 'analyzing' | 'styling' | 'scent' | 'complete' | 'error'
 
@@ -27,6 +28,7 @@ const phaseMessages: Record<LoadingPhase, string> = {
 
 export default function MirrorLoadingPage() {
   const router = useRouter()
+  const { isMobile } = useMobile()
   const memberId = useMirrorMember()
   const selfieUrl = useMirrorSelfie()
   const intensity = useMirrorIntensity()
@@ -154,6 +156,145 @@ export default function MirrorLoadingPage() {
     return null
   }
 
+  // 모바일: 단순화된 애니메이션
+  if (isMobile) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-6">
+        <div className="mx-auto max-w-lg space-y-8 text-center">
+          {/* Transformation Animation - 모바일 단순화 */}
+          <div className="relative mx-auto h-48 w-48">
+            <div className="relative h-full w-full overflow-hidden rounded-full">
+              <Image
+                src={selfieUrl}
+                alt="Your selfie"
+                fill
+                className="object-cover"
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  clipPath: `inset(${100 - progress}% 0 0 0)`,
+                }}
+              >
+                <Image
+                  src={member.placeholderImage}
+                  alt={member.name}
+                  fill
+                  className="object-cover opacity-40"
+                />
+                <div
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(135deg, ${member.accentColor}40 0%, transparent 100%)`,
+                  }}
+                />
+              </div>
+              <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="49"
+                  fill="none"
+                  stroke={member.accentColor}
+                  strokeWidth="1"
+                  strokeDasharray={`${progress * 3.08} 308`}
+                  strokeLinecap="round"
+                  transform="rotate(-90 50 50)"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Status Message - 모바일: 애니메이션 없이 */}
+          <div className="space-y-4">
+            <h2 className="font-korean text-2xl font-medium md:text-3xl">
+              {phase === 'complete' ? (
+                <>
+                  <span style={{ color: member.accentColor }}>{member.name}</span>
+                  으로 변신 완료!
+                </>
+              ) : phase === 'error' ? (
+                '변신 중 문제가 발생했어요'
+              ) : (
+                <>
+                  <span style={{ color: member.accentColor }}>{member.name}</span>
+                  의 스타일을
+                  <br />
+                  입히는 중
+                </>
+              )}
+            </h2>
+            <p className="text-[var(--text-secondary)]">{phaseMessages[phase]}</p>
+            {phase !== 'error' && phase !== 'complete' && (
+              <p className="text-sm text-white/50">
+                스타일 강도: {intensityInfo?.label}
+              </p>
+            )}
+            {errorMessage && (
+              <p className="mt-2 text-sm text-red-400">{errorMessage}</p>
+            )}
+          </div>
+
+          {/* Progress Bar - 모바일: 단순 */}
+          {phase !== 'error' && phase !== 'complete' && (
+            <div className="mx-auto w-full max-w-xs">
+              <div className="h-1 overflow-hidden rounded-full bg-[var(--background-secondary)]">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    backgroundColor: MIRROR_COLOR,
+                    width: `${progress}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                {Math.round(progress)}%
+              </p>
+            </div>
+          )}
+
+          {/* Retry Button */}
+          {phase === 'error' && (
+            <div>
+              <Button
+                variant="primary"
+                onClick={handleRetry}
+                className="gap-2"
+                style={{ backgroundColor: MIRROR_COLOR }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                다시 시도하기
+              </Button>
+            </div>
+          )}
+
+          {/* Phase indicators - 모바일: 단순 */}
+          {phase !== 'error' && phase !== 'complete' && (
+            <div className="flex justify-center gap-2">
+              {['analyzing', 'styling', 'scent'].map((p, i) => {
+                const isActive = phase === p
+                const isComplete =
+                  ['analyzing', 'styling', 'scent'].indexOf(phase) > i
+                return (
+                  <div
+                    key={p}
+                    className={`h-2 w-2 rounded-full ${
+                      isActive ? 'scale-125' : isComplete ? 'opacity-100' : 'opacity-30'
+                    }`}
+                    style={{
+                      backgroundColor: isActive || isComplete ? MIRROR_COLOR : 'white',
+                    }}
+                  />
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 데스크톱: 기존 애니메이션
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <div className="mx-auto max-w-lg space-y-8 text-center">

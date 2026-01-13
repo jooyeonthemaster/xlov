@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { RefreshCw } from 'lucide-react'
 import type { SpectrumResult, PersonalityAnalysis } from '@/types/spectrum'
 import type { ScentRecipe } from '@/types/scent'
+import { useMobile } from '@/hooks/use-mobile'
 
 type LoadingStatus = 'analyzing' | 'generating' | 'complete' | 'error'
 
@@ -32,6 +33,7 @@ interface SpectrumApiResponse {
 
 export default function SpectrumLoadingPage() {
   const router = useRouter()
+  const { isMobile } = useMobile()
   const answers = useSpectrumAnswers()
   const {
     setSpectrumResult,
@@ -129,6 +131,124 @@ export default function SpectrumLoadingPage() {
     analyzeSpectrum()
   }
 
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-6">
+        <div className="mx-auto max-w-lg space-y-8 text-center">
+          {/* Loading Animation - LoadingAnimation 컴포넌트는 이미 모바일 최적화됨 */}
+          <LoadingAnimation status={status} memberColor={SPECTRUM_COLOR} />
+
+          {/* Status Message - 모바일: 애니메이션 없이 */}
+          <div className="space-y-4">
+            <h2 className="font-korean text-2xl font-medium md:text-3xl">
+              {status === 'analyzing' && (
+                <>
+                  당신의{' '}
+                  <span style={{ color: SPECTRUM_COLOR }}>감각 스펙트럼</span>을
+                  <br />
+                  분석하고 있습니다
+                </>
+              )}
+              {status === 'generating' && (
+                <>
+                  맞춤{' '}
+                  <span style={{ color: SPECTRUM_COLOR }}>향 레시피</span>를
+                  <br />
+                  조합하고 있습니다
+                </>
+              )}
+              {status === 'complete' && '분석 완료!'}
+              {status === 'error' && '앗, 문제가 발생했어요'}
+            </h2>
+            <p className="text-[var(--text-secondary)]">
+              {statusMessages[status]}
+            </p>
+            {errorMessage && (
+              <p className="mt-2 text-sm text-red-400">{errorMessage}</p>
+            )}
+          </div>
+
+          {/* Progress Bar - 모바일: 단순 */}
+          {(status === 'analyzing' || status === 'generating') && (
+            <div className="mx-auto w-full max-w-xs">
+              <div className="h-1 overflow-hidden rounded-full bg-[var(--background-secondary)]">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    backgroundColor: SPECTRUM_COLOR,
+                    width: `${progress}%`,
+                  }}
+                />
+              </div>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                {Math.round(progress)}%
+              </p>
+            </div>
+          )}
+
+          {/* Retry Button */}
+          {status === 'error' && (
+            <div>
+              <Button
+                variant="primary"
+                onClick={handleRetry}
+                className="gap-2"
+                style={{ backgroundColor: SPECTRUM_COLOR }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                다시 시도하기
+              </Button>
+            </div>
+          )}
+
+          {/* Analysis phases - 모바일: 단순 */}
+          {(status === 'analyzing' || status === 'generating') && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <div
+                  className={`h-2 w-2 rounded-full ${
+                    status === 'analyzing' || status === 'generating'
+                      ? 'bg-green-400'
+                      : 'bg-white/20'
+                  }`}
+                />
+                <span
+                  className={
+                    status === 'analyzing' || status === 'generating'
+                      ? 'text-white/80'
+                      : 'text-white/40'
+                  }
+                >
+                  감각 패턴 분석
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <div
+                  className={`h-2 w-2 rounded-full ${
+                    status === 'generating' ? 'bg-green-400' : 'bg-white/20'
+                  }`}
+                />
+                <span
+                  className={
+                    status === 'generating' ? 'text-white/80' : 'text-white/40'
+                  }
+                >
+                  멤버 매칭 계산
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-3 text-sm">
+                <div className="h-2 w-2 rounded-full bg-white/20" />
+                <span className="text-white/40">향 레시피 생성</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // 데스크톱: 기존 애니메이션
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-6">
       <div className="mx-auto max-w-lg space-y-8 text-center">

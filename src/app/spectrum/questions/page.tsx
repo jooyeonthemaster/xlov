@@ -7,12 +7,14 @@ import { SpectrumQuestionStep } from '@/components/steps/spectrum-question-step'
 import { ProgressIndicator } from '@/components/ui/progress-indicator'
 import { useExperienceStore } from '@/hooks/use-experience-store'
 import { SPECTRUM_QUESTIONS } from '@/lib/constants'
+import { useMobile } from '@/hooks/use-mobile'
 
 // Spectrum 브랜드 컬러
 const SPECTRUM_COLOR = '#9B6DFF'
 
 export default function SpectrumQuestionsPage() {
   const router = useRouter()
+  const { isMobile } = useMobile()
 
   const {
     spectrum,
@@ -79,6 +81,60 @@ export default function SpectrumQuestionsPage() {
     return null
   }
 
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return (
+      <div className="min-h-screen px-6 py-8 md:py-12">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <span
+              className="inline-block px-4 py-1.5 rounded-full text-xs font-medium tracking-[0.3em] uppercase mb-4"
+              style={{
+                backgroundColor: `${SPECTRUM_COLOR}20`,
+                color: SPECTRUM_COLOR,
+              }}
+            >
+              SPECTRUM
+            </span>
+            <h1 className="font-korean text-xl text-white/60">
+              당신의 감각 스펙트럼을 탐색합니다
+            </h1>
+          </div>
+
+          {/* Progress Indicator */}
+          <div className="mb-8 md:mb-12">
+            <ProgressIndicator
+              current={currentStep + 1}
+              total={SPECTRUM_QUESTIONS.length}
+              memberColor={SPECTRUM_COLOR}
+            />
+          </div>
+
+          {/* Question Content - 애니메이션 없이 직접 렌더링 */}
+          <div key={currentStep}>
+            <SpectrumQuestionStep
+              question={currentQuestion}
+              value={currentValue}
+              onChange={handleChange}
+              onNext={handleNext}
+              onBack={handleBack}
+              isLast={isLastQuestion}
+              canProceed={canProceed}
+              accentColor={SPECTRUM_COLOR}
+            />
+          </div>
+
+          {/* Question counter */}
+          <div className="text-center mt-8 text-[var(--text-muted)] text-sm">
+            {currentStep + 1} / {SPECTRUM_QUESTIONS.length}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // 데스크톱: 기존 애니메이션
   return (
     <div className="min-h-screen px-6 py-8 md:py-12">
       <div className="max-w-4xl mx-auto">

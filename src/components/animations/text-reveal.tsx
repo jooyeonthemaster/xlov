@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useMobile } from '@/hooks/use-mobile'
 
 interface TextRevealProps {
   children: string
@@ -18,6 +18,13 @@ export function TextReveal({
   staggerDelay = 0.03,
   type = 'chars',
 }: TextRevealProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 텍스트만 렌더링
+  if (isMobile) {
+    return <span className={`inline-block ${className}`}>{children}</span>
+  }
+
   const splitText = () => {
     switch (type) {
       case 'chars':
@@ -100,6 +107,13 @@ export function FadeUp({
   delay = 0,
   duration = 0.6,
 }: FadeUpProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
       className={className}
@@ -130,6 +144,13 @@ export function StaggerContainer({
   staggerDelay = 0.1,
   delay = 0,
 }: StaggerContainerProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
       className={className}
@@ -158,6 +179,13 @@ export function StaggerItem({
   children: React.ReactNode
   className?: string
 }) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
       className={className}

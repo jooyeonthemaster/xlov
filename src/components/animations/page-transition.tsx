@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { ReactNode } from 'react'
+import { useMobile } from '@/hooks/use-mobile'
 
 interface PageTransitionProps {
   children: ReactNode
@@ -32,6 +33,13 @@ const pageVariants = {
 }
 
 export function PageTransition({ children, className = '' }: PageTransitionProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return <div className={className}>{children}</div>
+  }
+
   return (
     <motion.div
       className={className}
@@ -82,6 +90,13 @@ export function SlideTransition({
   className = '',
   keyProp,
 }: SlideTransitionProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: AnimatePresence 없이 단순 렌더링
+  if (isMobile) {
+    return <div key={keyProp} className={className}>{children}</div>
+  }
+
   return (
     <AnimatePresence mode="wait" custom={direction}>
       <motion.div
@@ -132,6 +147,13 @@ export function ScaleFadeTransition({
   className?: string
   keyProp?: string | number
 }) {
+  const { isMobile } = useMobile()
+
+  // 모바일: AnimatePresence 없이 단순 렌더링
+  if (isMobile) {
+    return <div key={keyProp} className={className}>{children}</div>
+  }
+
   return (
     <AnimatePresence mode="wait">
       <motion.div

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Member } from '@/types'
 import { cn } from '@/lib/utils'
+import { useMobile } from '@/hooks/use-mobile'
 
 interface MemberCardProps {
   member: Member
@@ -13,6 +14,86 @@ interface MemberCardProps {
 }
 
 export function MemberCard({ member, isSelected, onSelect, index }: MemberCardProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return (
+      <button
+        onClick={onSelect}
+        className={cn(
+          'relative w-full aspect-[3/4] rounded-2xl overflow-hidden',
+          'border-2 transition-colors duration-200',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
+          isSelected
+            ? 'border-current'
+            : 'border-transparent'
+        )}
+        style={{
+          borderColor: isSelected ? member.accentColor : undefined,
+        }}
+      >
+        {/* Member Image */}
+        <div className="absolute inset-0">
+          <Image
+            src={member.placeholderImage}
+            alt={member.name}
+            fill
+            className="object-cover object-top"
+            sizes="(max-width: 768px) 50vw, 25vw"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, ${member.accentColor}20 0%, transparent 50%, ${member.accentColor}10 100%)`,
+            }}
+          />
+        </div>
+
+        {/* Bottom gradient overlay */}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[var(--background)] via-[var(--background)]/80 to-transparent" />
+
+        {/* Member info */}
+        <div className="absolute bottom-0 left-0 right-0 p-4">
+          <h3 className="font-korean text-xl font-medium text-[var(--text-primary)] mb-1">
+            {member.name}
+          </h3>
+          <p
+            className="text-xs tracking-widest uppercase"
+            style={{ color: member.accentColor }}
+          >
+            {member.englishName}
+          </p>
+        </div>
+
+        {/* Selection indicator */}
+        {isSelected && (
+          <div className="absolute top-3 right-3">
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: member.accentColor }}
+            >
+              <svg
+                className="w-4 h-4 text-[var(--background)]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
+        )}
+      </button>
+    )
+  }
+
+  // 데스크톱: 기존 애니메이션
   return (
     <motion.button
       initial={{ opacity: 0, y: 40 }}

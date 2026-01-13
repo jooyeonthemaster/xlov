@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react'
+import { useMobile } from '@/hooks/use-mobile'
 import type { SpectrumQuestion } from '@/types/spectrum'
 
 interface SpectrumQuestionStepProps {
@@ -26,6 +27,118 @@ export function SpectrumQuestionStep({
   canProceed,
   accentColor,
 }: SpectrumQuestionStepProps) {
+  const { isMobile } = useMobile()
+
+  // 모바일: 애니메이션 없이 렌더링
+  if (isMobile) {
+    return (
+      <div className="space-y-12">
+        <div className="text-center">
+          <h2 className="font-korean text-3xl md:text-4xl font-medium">
+            {question.text}
+          </h2>
+        </div>
+
+        <div className="max-w-2xl mx-auto space-y-3">
+          {question.options.map((option) => {
+            const isSelected = value === option.value
+            const intensity = Math.abs(option.value) / 2
+
+            return (
+              <button
+                key={option.value}
+                onClick={() => onChange(option.value)}
+                className={`
+                  w-full p-4 rounded-xl text-left transition-colors duration-200
+                  border
+                  ${
+                    isSelected
+                      ? 'border-transparent'
+                      : 'border-white/10 bg-white/5'
+                  }
+                `}
+                style={{
+                  backgroundColor: isSelected ? `${accentColor}30` : undefined,
+                  borderColor: isSelected ? accentColor : undefined,
+                }}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-5 h-5 rounded-full border-2 flex items-center justify-center"
+                    style={{
+                      borderColor: isSelected ? accentColor : 'rgba(255,255,255,0.3)',
+                      backgroundColor: isSelected ? accentColor : 'transparent',
+                    }}
+                  >
+                    {isSelected && (
+                      <div className="w-2 h-2 rounded-full bg-white" />
+                    )}
+                  </div>
+
+                  <span
+                    className={`
+                      flex-1 text-base md:text-lg
+                      ${isSelected ? 'text-white' : 'text-white/70'}
+                    `}
+                  >
+                    {option.label}
+                  </span>
+
+                  <div className="flex gap-1">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-1 h-4 rounded-full"
+                        style={{
+                          backgroundColor:
+                            i < intensity * 3
+                              ? isSelected
+                                ? accentColor
+                                : 'rgba(255,255,255,0.3)'
+                              : 'rgba(255,255,255,0.1)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex justify-between items-center pt-8 max-w-2xl mx-auto">
+          <Button variant="ghost" onClick={onBack} className="gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            이전
+          </Button>
+
+          <Button
+            variant="primary"
+            onClick={onNext}
+            disabled={!canProceed}
+            className="gap-2 min-w-[120px]"
+            style={{
+              backgroundColor: canProceed ? accentColor : undefined,
+            }}
+          >
+            {isLast ? (
+              <>
+                결과 보기
+                <Check className="w-4 h-4" />
+              </>
+            ) : (
+              <>
+                다음
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  // 데스크톱: 기존 애니메이션
   return (
     <div className="space-y-12">
       {/* Question header */}
